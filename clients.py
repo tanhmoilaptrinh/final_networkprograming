@@ -4,6 +4,8 @@ import time
 import tkinter as tk
 from tkinter import scrolledtext, messagebox
 import sys
+import json
+import datetime
 
 # Client configuration
 HOST = 'localhost'
@@ -272,15 +274,27 @@ class GameClient:
         except:
             pass
 
+    def log_play(self, word):
+        log_data = {
+            "player": self.name,
+            "word": word,
+            "player_timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+        }
+        
+        with open("client_log.json", "a") as f:
+            json.dump(log_data, f, indent=2)
+            f.write("\n")
+
     def send_word(self):
         if not self.my_turn:
             self.display_message("Not your turn!")
             return
         word = self.word_entry.get().strip()
         if word:
+            self.log_play(word)  # Log the play
             self.client_socket.send(f"WORD {word}\n".encode('utf-8'))
             self.word_entry.delete(0, tk.END)
-            self.word_entry.config(state='disabled')  # Disable after sending
+            self.word_entry.config(state='disabled')
             self.my_turn = False
 
     def send_chat(self):
