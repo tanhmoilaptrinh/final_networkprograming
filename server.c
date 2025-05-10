@@ -11,6 +11,9 @@
 #include <fcntl.h>
 #include <errno.h>
 
+// Add after includes
+#include <time.h>
+
 #define PORT 12345
 #define MAX_PLAYERS 5
 #define MAX_WORD 64
@@ -22,6 +25,14 @@
 #define MAX_MSG_LEN 512
 #define MAX_BUF_LEN 256
 #define MAX_NAME_LEN 32
+
+// Add JSON state definitions
+#define STATE_ACCEPT "accept"
+#define STATE_INVALID "invalid" 
+#define STATE_BONUS "bonus"
+#define STATE_TIMEOUT "timeout"
+#define BONUS_TIME 5
+#define BONUS_POINTS 5
 
 typedef struct {
     char word[MAX_WORD];   // key
@@ -94,6 +105,28 @@ void log_word_submission(const char* player_name, const char* word, int score) {
     if (f) {
         fprintf(f, "{\n  \"player\": \"%s\",\n  \"word\": \"%s\",\n  \"score\": %d,\n  \"timestamp\": \"%s\"\n}\n",
                 player_name, word, score, timestamp);
+        fclose(f);
+    }
+}
+
+void log_play_state(const char* player, const char* word, const char* state, int score_change, int current_score) {
+    time_t now;
+    time(&now);
+    
+    char timestamp[40];
+    struct tm *tm_info = gmtime(&now);
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", tm_info);
+    
+    FILE *f = fopen(JSON_FILE, "a");
+    if (f) {
+        fprintf(f, "{\n");
+        fprintf(f, "  \"player\": \"%s\",\n", player);
+        fprintf(f, "  \"word\": \"%s\",\n", word);
+        fprintf(f, "  \"server_timestamp\": \"%s.124Z\",\n", timestamp);
+        fprintf(f, "  \"state\": \"%s\",\n", state);
+        fprintf(f, "  \"score_change\": %d,\n", score_change);
+        fprintf(f, "  \"current_score\": %d\n", current_score);
+        fprintf(f, "}\n");
         fclose(f);
     }
 }
@@ -275,6 +308,7 @@ void *game_loop(void *arg) {
                 // Timeout only if no word was processed
                 if (!got_valid_word) {
                     p->score += TIMEOUT_PENALTY;
+                    log_play_state(p->name, "", STATE_TIMEOUT, TIMEOUT_PENALTY, p->score);
                     snprintf(msg, sizeof(msg), "%s ran out of time (%d points)", p->name, TIMEOUT_PENALTY);
                     broadcast(msg);
                     broadcast_scores();
@@ -301,7 +335,7 @@ void *game_loop(void *arg) {
                     
                     if (strncmp(linebuf, "WORD ", 5) == 0) {
                         char *word = linebuf + 5;
-                        int early = (time(NULL) - start) <= 5;
+                        int early = (time(NULL) - start) <= BONUS_TIME;
 
                         // Check for duplicate with last word
                         int is_duplicate = (used_count > 0 && 
@@ -309,8 +343,15 @@ void *game_loop(void *arg) {
 
                         if (validate_word(word, current_letter) && !is_duplicate) {
                             strcpy(used_words[used_count++], word);
-                            int gained = strlen(word) + (early ? 2 : 0);
-                            p->score += gained;
+                            int gained = strlen(word);
+                            if (early) {
+                                gained += BONUS_POINTS;
+                                p->score += gained;
+                                log_play_state(p->name, word, STATE_BONUS, gained, p->score);
+                            } else {
+                                p->score += gained;
+                                log_play_state(p->name, word, STATE_ACCEPT, gained, p->score);
+                            }
                             
                             send(p->socket, "VALID\n", 6, 0);
                             snprintf(msg, sizeof(msg), "%s played '%s' (+%d points)", 
@@ -323,8 +364,10 @@ void *game_loop(void *arg) {
                         } else {
                             p->score -= 1;
                             if (is_duplicate) {
+                                log_play_state(p->name, word, STATE_INVALID, -1, p->score);
                                 snprintf(msg, sizeof(msg), "INVALID Word '%s' was already used\n", word);
                             } else {
+                                log_play_state(p->name, word, STATE_INVALID, -1, p->score);
                                 snprintf(msg, sizeof(msg), "INVALID Word '%s' is not valid\n", word);
                             }
                             send(p->socket, msg, strlen(msg), 0);
