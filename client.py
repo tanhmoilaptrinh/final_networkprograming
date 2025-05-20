@@ -5,12 +5,7 @@ import tkinter as tk
 from tkinter import scrolledtext, messagebox
 import json
 import datetime
-from PIL import Image, ImageTk
-import random
-import os
 
-
-AVATARS = ['avatar1.jpg', 'avatar2.jpg', 'avatar3.jpg', 'avatar4.jpg', 'avatar5.jpg']
 HOST = 'localhost'
 PORT = 12345
 BUFFER_SIZE = 1024
@@ -28,12 +23,10 @@ class GameClient:
         self.timer_id = None
         self.is_host = False
         self.scores = {}
-        self.player_avatars = {}  
         self.current_player = ""
         self.current_letter = ""
         self.my_turn = False
         self.current_cycle = 1
-        self.selected_avatar = None  
         self.setup_gui()
         self.connect_to_server()
         self.receive_thread = threading.Thread(target=self.receive_messages)
@@ -74,7 +67,8 @@ class GameClient:
         self.chat_frame = tk.Frame(self.middle_frame)
         self.chat_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        self.score_frame = tk.LabelFrame(self.middle_frame, text="Player Scores", width=200)
+        # Modify score display
+        self.score_frame = tk.LabelFrame(self.middle_frame, text="Player Scores")
         self.score_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=5)
 
         # Chat display with scrollbar
@@ -109,81 +103,9 @@ class GameClient:
         # Initialize score labels
         self.score_labels = {}
 
-    def load_avatar(self, image_path, size=(40, 40)):
-        try:
-            # Create a new image if it doesn't exist
-            if not os.path.exists(image_path):
-                img = Image.new('RGB', size, color=(random.randint(100, 200), random.randint(100, 200), random.randint(100, 200)))
-                img.save(image_path, 'JPEG')
-            img = Image.open(image_path)
-            img = img.resize(size, Image.LANCZOS)
-            return ImageTk.PhotoImage(img)
-        except Exception as e:
-            print(f"Error loading avatar: {e}")
-            # Fallback avatar if image loading fails
-            img = Image.new('RGB', size, color='gray')
-            return ImageTk.PhotoImage(img)
-
-    def assign_avatar(self, player_name, avatar_filename):
-        """Assign avatar to client."""
-        if player_name not in self.player_avatars and player_name != "System":
-            try:
-                # Create avatars directory if it doesn't exist
-                if not os.path.exists('avatars'):
-                    os.makedirs('avatars')
-                
-                avatar_path = os.path.join('avatars', avatar_filename)
-                print(f"Attempting to load avatar: {avatar_path}")
-                avatar_image = self.load_avatar(avatar_path, (40, 40))
-                if avatar_image:
-                    self.player_avatars[player_name] = avatar_image
-                    print(f"Successfully assigned avatar {avatar_filename} to {player_name}")
-                else:
-                    print(f"Failed to load avatar {avatar_filename} for {player_name}")
-                # Update score display
-                self.root.after(0, self.update_score_display)
-            except Exception as e:
-                print(f"Error assigning avatar to {player_name}: {e}")
-                # Fallback: assign a gray avatar
-                img = Image.new('RGB', (40, 40), color='gray')
-                self.player_avatars[player_name] = ImageTk.PhotoImage(img)
-                self.root.after(0, self.update_score_display)
-
-    def update_score_display(self):
-        for widget in self.score_frame.winfo_children():
-            widget.destroy()
-
-        sorted_scores = sorted(self.scores.items(), key=lambda x: x[1], reverse=True)
-        
-        for player, score in sorted_scores:
-            frame = tk.Frame(self.score_frame)
-            frame.pack(fill=tk.X, padx=5, pady=2)
-            
-            if player in self.player_avatars:
-                avatar_label = tk.Label(frame, image=self.player_avatars[player])
-                avatar_label.image = self.player_avatars[player]
-                avatar_label.pack(side=tk.LEFT)
-            
-            label_text = f"{player}: {score}"
-            if player == self.name:
-                label_text += " (You)"
-                
-            label = tk.Label(frame, text=label_text, font=('Arial', 10))
-            label.pack(side=tk.LEFT, padx=5)
-
     def add_message_to_chat(self, sender, text, is_word=False, is_me=False):
         msg_frame = tk.Frame(self.chat_inner_frame, bg='white')
         msg_frame.pack(fill=tk.X, pady=2)
-        
-        if sender != "System" and sender in self.player_avatars:
-            avatar_frame = tk.Frame(msg_frame, bg='white')
-            avatar_frame.pack(side=tk.LEFT, padx=(5, 0))
-            
-            avatar_label = tk.Label(avatar_frame, image=self.player_avatars[sender], bg='white')
-            avatar_label.image = self.player_avatars[sender]
-            avatar_label.pack()
-        elif sender == "System":
-            tk.Frame(msg_frame, width=45, bg='white').pack(side=tk.LEFT)
         
         msg_bg = '#f0f2f5'
         if is_me:
@@ -196,11 +118,11 @@ class GameClient:
         
         if sender != "System":
             name_label = tk.Label(msg_container, 
-                                 text=sender + (" (You)" if is_me else ""), 
-                                 bg=msg_container['bg'],
-                                 fg='#385898',
-                                 font=('Arial', 9, 'bold'),
-                                 anchor='w')
+                                text=sender + (" (You)" if is_me else ""), 
+                                bg=msg_container['bg'],
+                                fg='#385898',
+                                font=('Arial', 9, 'bold'),
+                                anchor='w')
             name_label.pack(fill=tk.X, padx=5, pady=(5, 0))
         
         msg_label = tk.Label(msg_container, 
@@ -214,6 +136,23 @@ class GameClient:
         msg_label.pack(fill=tk.X, padx=5, pady=(0 if sender == "System" else 5, 5))
         
         self.chat_canvas.yview_moveto(1.0)
+
+    def update_score_display(self):
+        for widget in self.score_frame.winfo_children():
+            widget.destroy()
+
+        sorted_scores = sorted(self.scores.items(), key=lambda x: x[1], reverse=True)
+        
+        for player, score in sorted_scores:
+            frame = tk.Frame(self.score_frame)
+            frame.pack(fill=tk.X, padx=5, pady=2)
+            
+            label_text = f"{player}: {score}"
+            if player == self.name:
+                label_text += " (You)"
+                
+            label = tk.Label(frame, text=label_text, font=('Arial', 10))
+            label.pack(side=tk.LEFT, padx=5)
 
     def connect_to_server(self):
         for attempt in range(RETRY_ATTEMPTS):
@@ -236,13 +175,10 @@ class GameClient:
         if not self.name:
             messagebox.showwarning("Warning", "Please enter a name")
             return
-        # Randome avatar
-        self.selected_avatar = random.choice(AVATARS)
         try:
-            self.client_socket.send(f"REGISTER {self.name} {self.selected_avatar}\n".encode('utf-8'))
+            self.client_socket.send(f"REGISTER {self.name}\n".encode('utf-8'))
             self.name_entry.config(state='disabled')
             self.register_button.config(state='disabled')
-            self.assign_avatar(self.name, self.selected_avatar)
             self.add_message_to_chat("System", "Registering name...")
         except Exception as e:
             self.add_message_to_chat("System", f"Error sending registration: {e}")
@@ -308,18 +244,6 @@ class GameClient:
                         self.root.after(0, lambda: self.register_button.config(state='normal'))
                         continue
                         
-                    if message.startswith('INFO Player') and 'joined with avatar' in message:
-                        parts = message.split(' ')
-                        if len(parts) >= 5:  
-                            player_name = parts[2]
-                            avatar_filename = parts[-1]
-                            print(f"Received avatar assignment: {player_name} -> {avatar_filename}")
-                            self.assign_avatar(player_name, avatar_filename)
-                            self.root.after(0, lambda pn=player_name: self.add_message_to_chat("System", f"Player {pn} joined the game"))
-                        else:
-                            print(f"Invalid avatar message format: {message}")
-                        continue
-                        
                     if message.startswith('CHAT'):
                         parts = message.split(' ', 2)
                         if len(parts) >= 3:
@@ -346,7 +270,8 @@ class GameClient:
                             state = json_data.get("state")
                             score_change = json_data.get("score_change", 0)
                             current_score = json_data.get("current_score", 0)
-                            timestamp = json_data.get("player_timestamp") or json_data.get("server_timestamp")
+                            player_timestamp = json_data.get("player_timestamp")
+                            server_timestamp = json_data.get("server_timestamp")
 
 
                             self.current_cycle = int(cycle)
@@ -366,8 +291,7 @@ class GameClient:
                                 self.root.after(0, self.stop_timer)
                                 self.my_turn = False
                                 self.root.after(0, lambda: self.word_entry.config(state='disabled'))
-                                self.log_play(cycle, player, word, timestamp)
-
+                                self.log_play(cycle, player, word, player_timestamp, server_timestamp)
                         except json.JSONDecodeError:
                             self.root.after(0, lambda: self.add_message_to_chat("System", "Invalid JSON received"))
                         continue
@@ -423,12 +347,13 @@ class GameClient:
         except:
             pass
 
-    def log_play(self, cycle, player, word, timestamp):
+    def log_play(self, cycle, player, word, player_timestamp, server_timestamp=None):
         log_data = {
             "Cycle": str(cycle),
             "player": player,
             "word": word,
-            "player_timestamp": timestamp
+            "player_timestamp": player_timestamp,
+            "server_timestamp": server_timestamp
         }
         try:
             with open("client_log.json", "a") as f:
