@@ -86,7 +86,6 @@ def validate_word(word, expected):
     return True
 
 def handle_client(sock, idx):
-    """Thread handling REGISTER, START, CHAT, and receiving JSON from client."""
     global game_active
     q = queue.Queue()
     player_queues[idx] = q
@@ -99,22 +98,19 @@ def handle_client(sock, idx):
                 raise ConnectionError()
             for line in data.decode().splitlines():
                 if line.startswith("REGISTER "):
-                    parts = line[9:].strip().split(' ', 1) 
-                    if len(parts) != 2:
-                        sock.sendall(b"ERROR: Registration must include name and avatar filename.\n")
+                    name = line[9:].strip()
+                    if not name:
+                        sock.sendall(b"ERROR: Registration must include name.\n")
                         raise ValueError("Invalid registration format")
-                    name, avatar_filename = parts
-                    print(f"Received registration: {name} with avatar {avatar_filename}")
+                    print(f"Received registration: {name}")
                     with lock:
                         players[idx].update({
                             'name': name,
-                            'avatar': avatar_filename, 
                             'ready': True,
                             'score': 0,
                         })
                         players[idx]['is_host'] = (idx == 0)
-                    # Broadcast player's name and avatar to all clients
-                    broadcast(f"INFO Player {name} joined with avatar {avatar_filename}")
+                    broadcast(f"INFO Player {name} joined")
                     if players[idx]['is_host']:
                         sock.sendall(b"INFO You are the host.\n")
                     break
@@ -211,14 +207,15 @@ def game_loop():
 
         # send JSON response
         resp = {
-            "Cycle": str(current_cycle),
-            "player": name,
-            "word": word,
-            "server_timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
-            "state": state,
-            "score_change": score_change,
-            "current_score": p['score']
-        }
+                "Cycle": str(current_cycle),
+                "player": name,
+                "word": word,
+                "player_timestamp": msg.get("player_timestamp"),  # Preserve player's timestamp
+                "server_timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+                "state": state,
+                "score_change": score_change,
+                "current_score": p['score']
+            }
         sock.sendall((json.dumps(resp) + "\n").encode())
         log_play_state(name, word, state, score_change, p['score'])
 
@@ -266,7 +263,6 @@ def accept_loop():
             players.append({
                 'socket': cli,
                 'name': "",
-                'avatar': "",  # Initialize avatar field
                 'is_host': False,
                 'score': 0,
                 'ready': False
