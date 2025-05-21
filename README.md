@@ -3,44 +3,60 @@
 ## Group Members and Contributions
 | Student ID     | Student name       | Contributions       |
 |----------------|--------------------|---------------------|
-| 23BI14030      | Tran Thuc Anh      | Leader &     |
-| 22BA13001      | Bui Truong An      | Analysis and Making slide   |
-| 22BA13020      | Nguyen Phuong Anh  |    |
-| 22BA13032      | Tran Thuong Nam Anh| Analysis and Making report   |
-| 22BA13102      | Nguyen Tien Duy    | Dữ liệu D   |
-| 23BI14032      | Nguyen Thi Vang Anh| Dữ liệu D   |
-| 23BI14356      | Luong Quynh Nhi    | Analysis and Making report   |
+| 23BI14030      | Tran Thuc Anh      | Leader & Making Server|
+| 22BA13001      | Bui Truong An      | Making slide   |
+| 22BA13020      | Nguyen Phuong Anh  | Making Client    |
+| 22BA13032      | Tran Thuong Nam Anh| Making report   |
+| 22BA13102      | Nguyen Tien Duy    | Making Client  |
+| 23BI14032      | Nguyen Thi Vang Anh| Making Server   |
+| 23BI14356      | Luong Quynh Nhi    | Analysis data|
 
 ## Description
 - Implement a multiplayer word chain game where each player must provide a word starting with the last letter of the previous player's word.
 
 ## Requirements
-- Server managing multiple game rooms with 2-4 players each
-- Random number generation (1-100) for each game
-- Turn-based gameplay with timeout mechanism
-- Scoring system based on number of attempts and speed
-- Game chat functionality
-- Leaderboard tracking
-- Reconnection capability if a player disconnects
+- Multiplayer word chain game for 2-5 players per session
+- Players provide word starting with the last letter of previous word
+- Dictionary validation ensures legitimate words
+- 30-second turn timer with timeout penalties
+- Detection of repeated words
+- Score tracking based on word length and speed
+- Simple client interface for word submission
+- Chat functionality between turns
 
 ## Input/Output
-- Player registration and game room selection
-- Number guess input
-- Server feedback on guess accuracy ("higher", "lower", "correct")
-- Game status updates (current player, guesses made)
-- Score reporting at the end of each round
+- Player registration and game joining interface
+- Current game state display (last word, current player, time remaining)
+- Word submission input
+- Server validation feedback
+- End game results with scores
+
+## Game rules
+- The first player to join becomes the host and starts the game.
+- The first player to reach 50 points wins the game.
+- The word must start with the last letter of the previous one.
+- The word must be valid (checked against the dictionary).
+- No repeated words are allowed during the game.
+
+**Scoring System**
+- Correct word → +1 point per character
+    - Example: elephant → +8 points
+- Fast answer (<5s) → +2 bonus points
+- Invalid word → -1 point
+- Timeout (no answer) → -2 points
 
 ## Example game flow
 ```
-Game starting! Secret number is between 1 and 100.
-Player 1's turn:
-> 50
-Too high! Player 2's turn.
-> 25
-Too low! Player 3's turn.
-> 40
-Too high! Player 1's turn.
-> 30
-Correct! Player 1 wins with 2 guesses!
+Game starting! Player 1 goes first.
+Player 1:
+> apple
+Valid! Player 2's turn (word must start with 'e'):
+> elephant
+Valid! Player 3's turn (word must start with 't'):
+> tiger
+Valid! Player 1's turn (word must start with 'r'):
+> rain
+Valid! Player 2's turn (word must start with 'n'):
+> [timeout - Player 2 loses a point]
 ```
 ## Challenges encountered and solutions
