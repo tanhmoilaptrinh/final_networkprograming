@@ -1,16 +1,5 @@
 # Networked Word Chain Game
 
-## Group Members and Contributions
-| Student ID     | Student name       | Contributions       |
-|----------------|--------------------|---------------------|
-| 23BI14030      | Tran Thuc Anh      | Leader & Making Server|
-| 22BA13001      | Bui Truong An      | Making slide   |
-| 22BA13020      | Nguyen Phuong Anh  | Making Client    |
-| 22BA13032      | Tran Thuong Nam Anh| Making report   |
-| 22BA13102      | Nguyen Tien Duy    | Making Client  |
-| 23BI14032      | Nguyen Thi Vang Anh| Making Server   |
-| 23BI14356      | Luong Quynh Nhi    | Analysis data|
-
 ## Description
 - Implement a multiplayer word chain game where each player must provide a word starting with the last letter of the previous player's word.
 
@@ -59,4 +48,42 @@ Valid! Player 1's turn (word must start with 'r'):
 Valid! Player 2's turn (word must start with 'n'):
 > [timeout - Player 2 loses a point]
 ```
+
+## Build and run instructions
+
+**Requirements**
+- Python 3
+- Server.py, Client.py and Dictionary.txt in the same directory
+
+**Run instructions**
+- Open 2 terminals to play
+    - Start the Server in one terminal window
+    ```
+    python3 server.py
+    ```
+    - Open a second terminal window and run the Client
+    ```
+    python3 client.py
+    ```
+
+
 ## Challenges encountered and solutions
+| Challenges     | Solutions     
+|----------------|--------------------|
+| Switching the programming language from C to Python         | Python provides higher-level abstractions, simpler syntax, and built-in libraries, making development faster and less error-prone.      |
+| Managing sockets and threads (multithreading) in Python          | Python simplifies socket programming with fewer lines of code and easier thread management using the `threading` module. |
+| Lack of strong data processing support in C                      | Python has powerful libraries like `pandas` and `numpy` for efficient data handling and analysis, which are not available in C. |
+| Invalid/malicious inputs	JSON | Parsing guarded with try/except. |
+| Turn fairness and latency |	Server timestamps stored for every response.|
+| Difficulty formatting and exporting data for reports             | Python can export data directly to CSV, Excel, or JSON formats with minimal code using `pandas`, streamlining reporting tasks. |
+
+## Group Members and Contributions
+| Student ID     | Student name       | Contributions       |
+|----------------|--------------------|---------------------|
+| 23BI14030      | Tran Thuc Anh      | Leader & Making Server|
+| 22BA13001      | Bui Truong An      | Making slide   |
+| 22BA13020      | Nguyen Phuong Anh  | Making Client    |
+| 22BA13032      | Tran Thuong Nam Anh| Making report   |
+| 22BA13102      | Nguyen Tien Duy    | Making Client  |
+| 23BI14032      | Nguyen Thi Vang Anh| Making Server   |
+| 23BI14356      | Luong Quynh Nhi    | Analysis data|
